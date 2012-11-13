@@ -16,7 +16,7 @@ parser.add_argument('-h', metavar='<hostname>', type=str, required=False, help='
 parser.add_argument('-p', metavar='<port>', type=int, required=False, help='Connecting to Hive Server on port number', dest='port')
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-e', metavar='<quoted-query-string>', type=str, help='SQL from command line', dest='query')
-group.add_argument('-f', metavar='<filename>', type=str, help='SQL from files', dest='script')
+group.add_argument('-f', metavar='<filename>', type=argparse.FileType('r'), help='SQL from files', dest='script')
 parser.add_argument('-d', '--define', metavar='<key=value>', type=key_value, action='append', help='Variable substitution to apply to hive commands. e.g. -d A=B or --define A=B', dest='define')
 parser.add_argument('--hiveconf', metavar='<property=value>', type=key_value, action='append', help='Use value for given property', dest='hiveconf')
 parser.add_argument('--hivevar', metavar='<key=value>', type=key_value, action='append', help='Variable substitution to apply to hive commands. e.g. --hivevar A=B', dest='hivevar')
@@ -28,6 +28,9 @@ host = args.host
 
 # -p option
 port = args.port
+
+# -f option
+lines = args.script.readlines() if not args.script == None else None
 
 command = []
 skip = False
@@ -41,14 +44,15 @@ for i in range(1, len(sys.argv)):
                 continue
         command.append(tmp)
 
-msg = json.dumps(command)
+req = {"command": command, "script": lines}
+req_str = json.dumps(req)
 
 context = zmq.Context()
 sock = context.socket(zmq.REQ)
 addr = "tcp://" + host + ":" + str(port)
 sock.connect(addr)
 
-sock.send(msg)
+sock.send(req_str)
 rsp_str = sock.recv()
 
 rsp = json.loads(rsp_str)

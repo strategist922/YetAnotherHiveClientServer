@@ -38,13 +38,19 @@ class HiveServerRouterConfig:
                         return None
 
 
-def make_command(proto_list, params):
-        result = ['hive'] + params
-        for opt in proto_list:
-                result.append(str(opt))
+def make_command(command_list, port):
+        result = ['hive', "-h", "localhost", "-p", port]
+        for cmd in command_list:
+                result.append(str(cmd))
         return result
 
-def exec_command(command, port):
+def exec_command(req, port):
+        command = make_command(req["command"], port)
+        fp = tempfile.NamedTemporaryFile()
+        if req["script"] != None:
+                for line in req["script"]:
+                        fp.write(line)
+                command[command.index("-f") + 1] = fp.name
 	logging.info("Hive command: " + ' '.join(command))
         task = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 	(out, err) = task.communicate()
@@ -55,21 +61,17 @@ def exec_command(command, port):
 def worker_routine(worker_url, context, port):
         # exec hiveserver service with given port
         hiveserver_cmd = ["hive", "--service", "hiveserver", "-p", port]
-        #f = tempfile.TemporaryFile(prefix = 'hiveserver_router', suffix = port) 
 	devnull = open('/dev/null', 'w')
         hiveserver = subprocess.Popen(hiveserver_cmd, stdout = devnull, stderr = devnull)
 
         worker = context.socket(zmq.REP)
         worker.connect(worker_url)
 
-        params = ["-h", "localhost", "-p", port]
-
         while True:
-                data = worker.recv()
-		logging.info("Recv: " + data)
-                msg = json.loads(data)
-                command = make_command(msg, params)
-                (retcode, out, err) = exec_command(command, port)
+                req_str = worker.recv()
+		logging.info("Recv: " + req_str)
+                req = json.loads(req_str)
+                (retcode, out, err) = exec_command(req, port)
                 rsp = {"retcode": retcode, "stdout": out, "stderr": err}
                 rsp_str = json.dumps(rsp)
                 worker.send(rsp_str)
