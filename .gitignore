@@ -36,3 +36,6 @@ nosetests.xml
 
 # log
 *.log
+
+# hive
+metastore_db/
