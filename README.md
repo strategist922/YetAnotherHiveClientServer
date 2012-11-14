@@ -10,7 +10,6 @@ Very simple hive client and server to work around concurrency problem of hive se
 
 ## Concurrent problem of hive server ##
 HiveServer is buggy at concurrency. (https://issues.apache.org/jira/browse/HIVE-80)
-There are some experiments including this (https://github.com/franklovecchio/hiveserver-loadtest).
 Handling multiple job in single session has no problem, however, handling multiple sessions result in exception.
 **YA-client/server** works around the above concurrent problem of hive server.
 
