@@ -72,6 +72,9 @@ def worker_routine(worker_url, context, port):
 		logging.info("Recv: " + req_str)
                 req = json.loads(req_str)
                 (retcode, out, err) = exec_command(req, port)
+                if req["result"] == False:
+                        out = None
+                        err = None
                 rsp = {"retcode": retcode, "stdout": out, "stderr": err}
                 rsp_str = json.dumps(rsp)
                 worker.send(rsp_str)
